@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
 # <HINT> Import any new Models here
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Question,Choice,Submission
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -11,7 +11,7 @@ import logging
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 # Create your views here.
-
+import json
 
 def registration_request(request):
     context = {}
@@ -101,6 +101,56 @@ def enroll(request, course_id):
         course.save()
 
     return HttpResponseRedirect(reverse(viewname='onlinecourse:course_details', args=(course.id,)))
+
+def submit(request,course_id):
+    user=request.user
+    enrollment=Enrollment.objects.get(user=user, course=course_id)
+  
+    # choices=request.POST.get('choice_{{choice.id}}')
+ 
+    def extract_answers(requests):
+        submitted_anwsers = []
+        for key in requests:
+            if key.startswith('choice'):
+                value = request.POST[key]
+                choice_id = int(value)
+                submitted_anwsers.append(choice_id)
+        return submitted_anwsers
+     
+    choices=request.POST #.get('choice_{{choice.id}}')
+    choice=str(extract_answers(choices))
+    ch=json.loads(choice)
+    # submission=Submission.objects.create(sub=choice)
+    subm=enrollment.submission_set.create(sub=ch)
+  
+    submission_id=subm.id
+    return HttpResponseRedirect(f'{submission_id}/show_exam_result')  
+
+
+
+def show_exam_result(request, course_id, submission_id):
+        # grade=0
+        mark=0
+        submission=Submission.objects.get(id=submission_id)
+        course=Course.objects.get(id=course_id)
+        ques=course.question_set.all()
+        su = submission.sub
+        Question.course
+        dc={}
+        sum=0
+        for i in su:
+            ch=Choice.objects.get(id=i)
+            if ch.is_correct==True:
+                dc[i]=f'The correct answer is : {ch}'
+                sum+=ch.grade
+            else:
+                dc[i]=f'{ch} not correct'
+            dc.update(dc)
+     
+       
+              
+       
+        return render(request,'onlinecourse/exam_result_bootstrap.html', {'course_id':course_id , 'mark':sum, 'grade':dc})
 
 
 # <HINT> Create a submit view to create an exam submission record for a course enrollment,

@@ -8,6 +8,7 @@ except Exception:
 
 from django.conf import settings
 import uuid
+from django.db.models import BigAutoField
 
 
 # Instructor model
@@ -55,7 +56,7 @@ class Learner(models.Model):
 # Course model
 class Course(models.Model):
     name = models.CharField(null=False, max_length=30, default='online course')
-    image = models.ImageField(upload_to='course_images/')
+    image = models.ImageField(blank=True,upload_to='course_images/')
     description = models.CharField(max_length=1000)
     pub_date = models.DateField(null=True)
     instructors = models.ManyToManyField(Instructor)
@@ -93,6 +94,41 @@ class Enrollment(models.Model):
     date_enrolled = models.DateField(default=now)
     mode = models.CharField(max_length=5, choices=COURSE_MODES, default=AUDIT)
     rating = models.FloatField(default=5.0)
+
+
+class Question(models.Model):
+    # id = models.AutoField(primary_key=True)
+    lesson=models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    question_text = models.TextField(max_length=50)
+    course=models.ForeignKey(Course, on_delete=models.CASCADE)
+   
+  
+
+    def is_get_score(self, selected_ids):
+            all_answers = self.choice_set.filter(is_correct=True).count()
+            selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+            if all_answers == selected_correct:
+                return True
+            else:
+                return False
+
+class Choice(models.Model):
+  
+  question=models.ForeignKey(Question, on_delete=models.CASCADE, default=None)
+  choice_text=models.TextField(blank=True)
+  is_correct=models.BooleanField(default=False)
+  grade=models.IntegerField(default=0)
+  def __str__(self):
+      return self.choice_text
+     
+
+class Submission(models.Model):
+    #  id=models.BigAutoField(primary_key=True, default=0)
+     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+     choices = models.ManyToManyField(Choice, default=None)
+     sub=models.JSONField(max_length=255)
+  
+    #  person=models.CharField(max_length=100, default=None)
 
 
 # <HINT> Create a Question Model with:
